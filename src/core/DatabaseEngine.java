@@ -37,7 +37,7 @@ public class DatabaseEngine {
     private final DDLParser ddlParser;
 
     public DatabaseEngine() {
-        this.storageEngine = new JSONStorageEngine();
+        this.storageEngine = new JSONStorageEngine("gBase");
         this.activeDatabases = new HashMap<>();
         this.ddlParser = new DDLParser();
 
