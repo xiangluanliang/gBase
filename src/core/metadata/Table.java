@@ -16,6 +16,7 @@ import core.exception.*;
 import java.sql.*;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.ArrayList;
 
 /**
  * 数据库表定义
@@ -27,13 +28,13 @@ import java.util.stream.Collectors;
 public class Table {
     private final String name;
     private final String schema;
-    private final List<Column> columns;
-    private final Set<String> primaryKeys;
+    private List<Column> columns;
+    private Set<String> primaryKeys;
 
     public Table(String name, String schema, List<Column> columns) {
         this.name = Objects.requireNonNull(name);
         this.schema = schema;
-        this.columns = Collections.unmodifiableList(new ArrayList<>(columns));
+        this.columns = new ArrayList<>(columns);
         this.primaryKeys = columns.stream()
                 .filter(Column::isPrimaryKey)
                 .map(Column::getName)
@@ -174,11 +175,111 @@ public class Table {
     // === 访问方法 ===
     public String getName() { return name; }
     public String getSchema() { return schema; }
-    public List<Column> getColumns() { return columns; }
+    public List<Column> getColumns() { return Collections.unmodifiableList(columns); }
     public Optional<Column> getColumn(String name) {
         return columns.stream()
                 .filter(c -> c.getName().equalsIgnoreCase(name))
                 .findFirst();
+    }
+
+    /**
+     * 通过名称查找列
+     * @param columnName 列名
+     * @return 列对象，如果不存在则返回null
+     */
+    public Column getColumnByName(String columnName) {
+        return getColumn(columnName).orElse(null);
+    }
+
+    /**
+     * 添加列
+     * @param column 要添加的列
+     */
+    public void addColumn(Column column) {
+        // 检查列名是否重复
+        if (getColumn(column.getName()).isPresent()) {
+            throw new DatabaseException("Column '" + column.getName() + "' already exists",
+                    DatabaseException.DUPLICATE_COLUMN,
+                    null,
+                    Map.of("table", name, "column", column.getName()));
+        }
+
+        // 添加列并更新主键集合
+        List<Column> newColumns = new ArrayList<>(columns);
+        newColumns.add(column);
+        columns = newColumns;
+
+        if (column.isPrimaryKey()) {
+            primaryKeys.add(column.getName());
+        }
+    }
+
+    /**
+     * 删除列
+     * @param columnName 要删除的列名
+     */
+    public void dropColumn(String columnName) {
+        // 检查列是否存在
+        Column column = getColumnByName(columnName);
+        if (column == null) {
+            throw new DatabaseException("Column '" + columnName + "' does not exist",
+                    DatabaseException.COLUMN_NOT_FOUND,
+                    null,
+                    Map.of("table", name, "column", columnName));
+        }
+
+        // 检查是否是主键列
+        if (column.isPrimaryKey()) {
+            primaryKeys.remove(columnName);
+        }
+
+        // 移除列
+        columns.removeIf(c -> c.getName().equalsIgnoreCase(columnName));
+    }
+
+    /**
+     * 修改列定义
+     * @param oldColumnName 原列名
+     * @param newColumn 新的列定义
+     */
+    public void modifyColumn(String oldColumnName, Column newColumn) {
+        // 检查原列是否存在
+        Column oldColumn = getColumnByName(oldColumnName);
+        if (oldColumn == null) {
+            throw new DatabaseException("Column '" + oldColumnName + "' does not exist",
+                    DatabaseException.COLUMN_NOT_FOUND,
+                    null,
+                    Map.of("table", name, "column", oldColumnName));
+        }
+
+        // 检查新列名是否与其他列冲突（如果名称改变）
+        if (!oldColumnName.equalsIgnoreCase(newColumn.getName()) &&
+                columns.stream()
+                        .anyMatch(c -> !c.getName().equalsIgnoreCase(oldColumnName) &&
+                                c.getName().equalsIgnoreCase(newColumn.getName()))) {
+            throw new DatabaseException("Column name '" + newColumn.getName() + "' already exists",
+                    DatabaseException.DUPLICATE_COLUMN,
+                    null,
+                    Map.of("table", name, "column", newColumn.getName()));
+        }
+
+        // 更新主键列表
+        if (oldColumn.isPrimaryKey() && !newColumn.isPrimaryKey()) {
+            primaryKeys.remove(oldColumnName);
+        } else if (!oldColumn.isPrimaryKey() && newColumn.isPrimaryKey()) {
+            primaryKeys.add(newColumn.getName());
+        } else if (oldColumn.isPrimaryKey() && !oldColumnName.equals(newColumn.getName())) {
+            primaryKeys.remove(oldColumnName);
+            primaryKeys.add(newColumn.getName());
+        }
+
+        // 替换列定义
+        for (int i = 0; i < columns.size(); i++) {
+            if (columns.get(i).getName().equalsIgnoreCase(oldColumnName)) {
+                columns.set(i, newColumn);
+                break;
+            }
+        }
     }
 
     // === 实用方法 ===

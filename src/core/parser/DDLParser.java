@@ -23,7 +23,8 @@ import java.util.stream.Collectors;
  * 功能：
  * 1. 解析CREATE TABLE语句
  * 2. 解析ALTER TABLE语句
- * 3. 生成表结构对象
+ * 3. 解析DROP TABLE语句
+ * 4. 生成表结构对象
  */
 public class DDLParser {
     private final Tokenizer tokenizer;
@@ -35,13 +36,35 @@ public class DDLParser {
     }
 
     /**
-     * 解析DDL语句生成Table对象
+     * 解析DDL语句
+     * @param ddl SQL DDL语句
+     * @return 解析结果，可能是Table或AlterCommand
+     */
+    public Object parse(String ddl) {
+        this.tokens = tokenizer.tokenize(ddl);
+        this.currentPos = 0;
+
+        if (peekKeyword("CREATE")) {
+            return parseCreateTable(ddl);
+        } else if (peekKeyword("ALTER")) {
+            return parseAlterTable(ddl);
+        } else if (peekKeyword("DROP")) {
+            return parseDropTable(ddl);
+        } else {
+            throw new ParseException("Unsupported DDL statement: " + ddl);
+        }
+    }
+
+    /**
+     * 解析CREATE TABLE语句生成Table对象
      * @param ddl SQL DDL语句
      * @return 解析后的Table对象
      */
     public Table parseCreateTable(String ddl) {
-        this.tokens = tokenizer.tokenize(ddl);
-        this.currentPos = 0;
+        if (currentPos == 0) {
+            this.tokens = tokenizer.tokenize(ddl);
+            this.currentPos = 0;
+        }
 
         expectKeyword("CREATE");
         expectKeyword("TABLE");
@@ -219,5 +242,128 @@ public class DDLParser {
         return currentPos < tokens.size() &&
                 tokens.get(currentPos).type == Tokenizer.TokenType.SYMBOL &&
                 tokens.get(currentPos).value.equals(symbol);
+    }
+
+    /**
+     * 解析ALTER TABLE语句
+     * @param ddl SQL DDL语句
+     * @return 解析后的AlterCommand对象
+     */
+    public AlterCommand parseAlterTable(String ddl) {
+        if (currentPos == 0) {
+            this.tokens = tokenizer.tokenize(ddl);
+            this.currentPos = 0;
+        }
+
+        expectKeyword("ALTER");
+        expectKeyword("TABLE");
+
+        // 获取表名
+        String tableName = parseIdentifier();
+
+        // 处理可选的schema前缀
+        if (peekSymbol(".")) {
+            String schema = tableName;
+            consumeSymbol(".");
+            tableName = parseIdentifier();
+        }
+
+        // 解析操作类型
+        if (peekKeyword("ADD")) {
+            consumeKeyword("ADD");
+            boolean hasColumnKeyword = false;
+
+            if (peekKeyword("COLUMN")) {
+                consumeKeyword("COLUMN");
+                hasColumnKeyword = true;
+            }
+
+            // 解析列定义
+            Column column = parseColumnDefinition();
+            return new AlterCommand(tableName, AlterCommand.AlterType.ADD_COLUMN, column);
+
+        } else if (peekKeyword("DROP")) {
+            consumeKeyword("DROP");
+            boolean hasColumnKeyword = false;
+
+            if (peekKeyword("COLUMN")) {
+                consumeKeyword("COLUMN");
+                hasColumnKeyword = true;
+            }
+
+            // 解析列名
+            String columnName = parseIdentifier();
+            return new AlterCommand(tableName, AlterCommand.AlterType.DROP_COLUMN, columnName);
+
+        } else if (peekKeyword("MODIFY")) {
+            consumeKeyword("MODIFY");
+            boolean hasColumnKeyword = false;
+
+            if (peekKeyword("COLUMN")) {
+                consumeKeyword("COLUMN");
+                hasColumnKeyword = true;
+            }
+
+            // 解析列名和新定义
+            String columnName = parseIdentifier();
+
+            // 解析新类型和约束
+            JDBCType type = parseDataType();
+            Column.Builder builder = Column.builder(columnName, type);
+
+            // 解析约束
+            while (true) {
+                if (peekKeyword("PRIMARY")) {
+                    consumeKeyword("PRIMARY");
+                    consumeKeyword("KEY");
+                    builder.addConstraint(Column.Constraint.PRIMARY_KEY);
+                } else if (peekKeyword("NOT")) {
+                    consumeKeyword("NOT");
+                    consumeKeyword("NULL");
+                    builder.addConstraint(Column.Constraint.NOT_NULL);
+                } else if (peekKeyword("UNIQUE")) {
+                    consumeKeyword("UNIQUE");
+                    builder.addConstraint(Column.Constraint.UNIQUE);
+                } else if (peekKeyword("DEFAULT")) {
+                    consumeKeyword("DEFAULT");
+                    builder.addConstraint(Column.Constraint.DEFAULT);
+                    builder.defaultValue(parseDefaultValue());
+                } else {
+                    break;
+                }
+            }
+
+            Column newColumn = builder.build();
+            return new AlterCommand(tableName, AlterCommand.AlterType.MODIFY_COLUMN, columnName, newColumn);
+        } else {
+            throw new ParseException("Unsupported ALTER TABLE operation");
+        }
+    }
+
+    /**
+     * 解析DROP TABLE语句
+     * @param ddl SQL DDL语句
+     * @return 表名
+     */
+    public String parseDropTable(String ddl) {
+        if (currentPos == 0) {
+            this.tokens = tokenizer.tokenize(ddl);
+            this.currentPos = 0;
+        }
+
+        expectKeyword("DROP");
+        expectKeyword("TABLE");
+
+        // 获取表名
+        String tableName = parseIdentifier();
+
+        // 处理可选的schema前缀
+        if (peekSymbol(".")) {
+            String schema = tableName;
+            consumeSymbol(".");
+            tableName = parseIdentifier();
+        }
+
+        return tableName;
     }
 }

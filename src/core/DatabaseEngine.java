@@ -12,9 +12,11 @@ package core;
  */
 
 import core.exception.DatabaseException;
+import core.exception.ParseException;
 import core.exception.SyntaxException;
 import core.metadata.Database;
 import core.metadata.Table;
+import core.parser.AlterCommand;
 import core.parser.DDLParser;
 import core.storage.JSONStorageEngine;
 
@@ -92,20 +94,31 @@ public class DatabaseEngine {
         Database db = getDatabase(dbName);
 
         try {
-            if (sql.toUpperCase().startsWith("CREATE TABLE")) {
-                handleCreateTable(db, sql);
-            } else if (sql.toUpperCase().startsWith("ALTER TABLE")) {
-                handleAlterTable(db, sql);
-            } else if (sql.toUpperCase().startsWith("DROP TABLE")) {
-                handleDropTable(db, sql);
+            Object parseResult = ddlParser.parse(sql);
+
+            if (parseResult instanceof Table) {
+                // Handle CREATE TABLE
+                Table table = (Table) parseResult;
+                db.addTable(table);
+                System.out.println("Table '" + table.getName() + "' created in database '" + db.getName() + "'");
+            } else if (parseResult instanceof AlterCommand) {
+                // Handle ALTER TABLE
+                AlterCommand cmd = (AlterCommand) parseResult;
+                cmd.execute(db);
+                System.out.println("Table '" + cmd.getTableName() + "' altered successfully");
+            } else if (parseResult instanceof String) {
+                // Handle DROP TABLE
+                String tableName = (String) parseResult;
+                db.dropTable(tableName);
+                System.out.println("Table '" + tableName + "' dropped from database '" + db.getName() + "'");
             } else {
                 throw new SyntaxException("Unsupported DDL statement");
             }
 
             // 持久化变更
             storageEngine.saveDatabase(db);
-        } catch (SyntaxException e) {
-            throw new DatabaseException("SQL Syntax Error: " + e.getMessage());
+        } catch (ParseException e) {
+            throw new DatabaseException("SQL Parse Error: " + e.getMessage());
         } catch (IOException e) {
             throw new DatabaseException("Storage Error: " + e.getMessage());
         }
@@ -137,23 +150,7 @@ public class DatabaseEngine {
         }
     }
 
-    private void handleCreateTable(Database db, String sql) throws SyntaxException {
-        Table table = ddlParser.parseCreateTable(sql);
-        db.addTable(table);
-        System.out.println("Table '" + table.getName() + "' created in database '" + db.getName() + "'");
-    }
-
-    private void handleAlterTable(Database db, String sql) throws SyntaxException {
-        AlterCommand cmd = ddlParser.parseAlterTable(sql);
-        cmd.execute(db);
-        System.out.println("Table '" + cmd.getTableName() + "' altered successfully");
-    }
-
-    private void handleDropTable(Database db, String sql) throws SyntaxException {
-        String tableName = ddlParser.parseDropTable(sql);
-        db.dropTable(tableName);
-        System.out.println("Table '" + tableName + "' dropped from database '" + db.getName() + "'");
-    }
+    // The handling of DDL statements is now directly in the executeDDL method
 
     // === 状态检查方法 ===
 

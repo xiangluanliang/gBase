@@ -190,6 +190,19 @@ public class Column {
     // === 访问方法 ===
     public String getName() { return name; }
     public JDBCType getJdbcType() { return jdbcType; }
+    public JDBCType getType() { return jdbcType; } // Alias for compatibility with test code
     public boolean isPrimaryKey() { return constraints.contains(Constraint.PRIMARY_KEY); }
-    // 其他getter...
+    public boolean isNullable() { return !constraints.contains(Constraint.NOT_NULL); }
+    public String getDefaultValue() { return defaultValue; }
+    public Integer getLength() { return length; }
+    public Integer getPrecision() { return precision; }
+    public Integer getScale() { return scale; }
+
+    /**
+     * 添加约束
+     * @param constraint 要添加的约束
+     */
+    public void addConstraint(Constraint constraint) {
+        ((HashSet<Constraint>)constraints).add(constraint);
+    }
 }
