@@ -15,6 +15,7 @@ import core.exception.DatabaseException;
 import core.exception.SyntaxException;
 import core.metadata.Database;
 import core.metadata.Table;
+import core.parser.AlterCommand;
 import core.parser.DDLParser;
 import core.storage.JSONStorageEngine;
 
