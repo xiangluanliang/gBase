@@ -19,6 +19,8 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.*;
 
+import static java.util.Map.*;
+
 /**
  * 数据库核心管理类
  * 功能：
