@@ -29,14 +29,14 @@ public class AlterCommand {
 
     private final String tableName;
     private final AlterType alterType;
-    private Column newColumn; // Used for ADD and MODIFY operations
-    private String columnName; // Used for DROP operation or as old column name for MODIFY
+    private Column newColumn; // 用于 ADD 和 MODIFY 操作
+    private String columnName; // 用于 DROP 操作或作为 MODIFY 操作中的旧列名
 
     /**
-     * Constructor for ADD_COLUMN operation
-     * @param tableName The name of the table to alter
-     * @param alterType Must be ADD_COLUMN
-     * @param newColumn The column to add
+     * 用于 ADD_COLUMN 操作的构造函数
+     * @param tableName 要修改的表的名称
+     * @param alterType 必须是 ADD_COLUMN
+     * @param newColumn 要添加的列
      */
     public AlterCommand(String tableName, AlterType alterType, Column newColumn) {
         if (alterType != AlterType.ADD_COLUMN) {
@@ -48,10 +48,10 @@ public class AlterCommand {
     }
 
     /**
-     * Constructor for DROP_COLUMN operation
-     * @param tableName The name of the table to alter
-     * @param alterType Must be DROP_COLUMN
-     * @param columnName The name of the column to drop
+     * 用于 DROP_COLUMN 操作的构造函数
+     * @param tableName 要修改的表的名称
+     * @param alterType 必须是 DROP_COLUMN
+     * @param columnName 要删除的列的名称
      */
     public AlterCommand(String tableName, AlterType alterType, String columnName) {
         if (alterType != AlterType.DROP_COLUMN) {
@@ -63,11 +63,11 @@ public class AlterCommand {
     }
 
     /**
-     * Constructor for MODIFY_COLUMN operation
-     * @param tableName The name of the table to alter
-     * @param alterType Must be MODIFY_COLUMN
-     * @param columnName The name of the column to modify
-     * @param newColumn The new column definition
+     * 用于 MODIFY_COLUMN 操作的构造函数
+     * @param tableName 要修改的表的名称
+     * @param alterType 必须是 MODIFY_COLUMN
+     * @param columnName 要修改的列的名称
+     * @param newColumn 新列的定义
      */
     public AlterCommand(String tableName, AlterType alterType, String columnName, Column newColumn) {
         if (alterType != AlterType.MODIFY_COLUMN) {
@@ -80,8 +80,8 @@ public class AlterCommand {
     }
 
     /**
-     * Execute the ALTER TABLE command on the specified database
-     * @param database The database containing the table to alter
+     * 在指定的数据库上执行 ALTER TABLE 命令
+     * @param database 包含要修改的表的数据库
      */
     public void execute(Database database) {
         Table table = database.getTable(tableName);
@@ -103,7 +103,7 @@ public class AlterCommand {
     }
 
     private void executeAddColumn(Table table) {
-        // Check if column already exists
+        // 检查列是否已存在
         if (table.getColumnByName(newColumn.getName()) != null) {
             throw new DatabaseException("Column '" + newColumn.getName() + "' already exists in table '" + tableName + "'");
         }
@@ -111,7 +111,7 @@ public class AlterCommand {
     }
 
     private void executeDropColumn(Table table) {
-        // Check if column exists
+        // 检查列是否存在
         if (table.getColumnByName(columnName) == null) {
             throw new DatabaseException("Column '" + columnName + "' does not exist in table '" + tableName + "'");
         }
@@ -119,14 +119,14 @@ public class AlterCommand {
     }
 
     private void executeModifyColumn(Table table) {
-        // Check if column exists
+        // 检查列是否存在
         if (table.getColumnByName(columnName) == null) {
             throw new DatabaseException("Column '" + columnName + "' does not exist in table '" + tableName + "'");
         }
 
-        // If column is being renamed (different name in newColumn)
+        // 如果列被重命名（newColumn 中的名称与 columnName 不同）
         if (!columnName.equals(newColumn.getName())) {
-            // Check that new name doesn't already exist
+            // 检查新名称是否已存在
             if (table.getColumnByName(newColumn.getName()) != null) {
                 throw new DatabaseException("Cannot rename column '" + columnName +
                         "' to '" + newColumn.getName() + "' as the target name already exists");
@@ -137,32 +137,32 @@ public class AlterCommand {
     }
 
     /**
-     * Get the name of the table being altered
-     * @return The table name
+     * 获取被修改的表的名称
+     * @return 表名称
      */
     public String getTableName() {
         return tableName;
     }
 
     /**
-     * Get the type of alteration
-     * @return The AlterType enum value
+     * 获取修改类型
+     * @return AlterType 枚举值
      */
     public AlterType getAlterType() {
         return alterType;
     }
 
     /**
-     * Get the column name for DROP operations or old column name for MODIFY operations
-     * @return The column name
+     * 获取 DROP 操作中的列名称或 MODIFY 操作中的旧列名称
+     * @return 列名称
      */
     public String getColumnName() {
         return columnName;
     }
 
     /**
-     * Get the new column definition for ADD or MODIFY operations
-     * @return The Column object
+     * 获取 ADD 或 MODIFY 操作中的新列定义
+     * @return Column 对象
      */
     public Column getNewColumn() {
         return newColumn;

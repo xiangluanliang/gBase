@@ -34,7 +34,7 @@ public class DatabaseEngine {
     private final Map<String, Database> activeDatabases;
     private final DDLParser ddlParser;
 
-    public DatabaseEngine() {
+    public DatabaseEngine() throws IOException {
         this.storageEngine = new JSONStorageEngine();
         this.activeDatabases = new HashMap<>();
         this.ddlParser = new DDLParser();

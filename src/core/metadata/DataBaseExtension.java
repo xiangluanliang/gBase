@@ -30,9 +30,9 @@ public class Database {
     private final Map<String, Table> tables;
 
     /**
-     * Constructor for creating a new empty database
+     * 构造函数用于创建一个新的空数据库
      *
-     * @param name Database name
+     * @param name 数据库名称
      */
     public Database(String name) {
         this.name = name;
@@ -40,10 +40,10 @@ public class Database {
     }
 
     /**
-     * Constructor for loading an existing database
+     * 构造函数用于加载一个已存在的数据库
      *
-     * @param name Database name
-     * @param tables Pre-loaded tables
+     * @param name 数据库名称
+     * @param tables 预加载的表
      */
     public Database(String name, Map<String, Table> tables) {
         this.name = name;
@@ -51,43 +51,43 @@ public class Database {
     }
 
     /**
-     * Get the database name
+     * 获取数据库名称
      *
-     * @return Database name
+     * @return 数据库名称
      */
     public String getName() {
         return name;
     }
 
     /**
-     * Get all tables in this database
+     * 获取数据库中的所有表
      *
-     * @return Map of table name to Table objects
+     * @return 包含表名称到表对象映射的Map
      */
     public Map<String, Table> getTables() {
         return Collections.unmodifiableMap(tables);
     }
 
     /**
-     * Get a specific table by name
+     * 根据名称获取特定的表
      *
-     * @param tableName Name of the table to retrieve
-     * @return Table object or null if not found
+     * @param tableName 要检索的表的名称
+     * @return 表对象或如果未找到则返回null
      */
     public Table getTable(String tableName) {
         return tables.get(tableName);
     }
 
     /**
-     * Add a table to the database
+     * 向数据库中添加一个表
      *
-     * @param table Table object to add
-     * @throws DatabaseException if table already exists
+     * @param table 要添加的表对象
+     * @throws DatabaseException 如果表已经存在
      */
     public void addTable(Table table) {
         String tableName = table.getName();
         if (tables.containsKey(tableName)) {
-            throw new DatabaseException("Table '" + tableName + "' already exists in database '" + name + "'",
+            throw new DatabaseException("表 '" + tableName + "' 已经存在于数据库 '" + name + "' 中",
                     DatabaseException.TABLE_ALREADY_EXISTS,
                     null,
                     Map.of("table", tableName, "database", name));
@@ -96,14 +96,14 @@ public class Database {
     }
 
     /**
-     * Drop a table from the database
+     * 从数据库中删除一个表
      *
-     * @param tableName Name of the table to drop
-     * @throws DatabaseException if table does not exist
+     * @param tableName 要删除的表的名称
+     * @throws DatabaseException 如果表不存在
      */
     public void dropTable(String tableName) {
         if (!tables.containsKey(tableName)) {
-            throw new DatabaseException("Table '" + tableName + "' does not exist in database '" + name + "'",
+            throw new DatabaseException("表 '" + tableName + "' 不存在于数据库 '" + name + "' 中",
                     DatabaseException.TABLE_NOT_FOUND,
                     null,
                     Map.of("table", tableName, "database", name));
@@ -112,47 +112,47 @@ public class Database {
     }
 
     /**
-     * Check if a table exists in this database
+     * 检查表是否存在于该数据库中
      *
-     * @param tableName Name of the table to check
-     * @return true if the table exists, false otherwise
+     * @param tableName 要检查的表的名称
+     * @return 如果表存在则返回true，否则返回false
      */
     public boolean tableExists(String tableName) {
         return tables.containsKey(tableName);
     }
 
     /**
-     * Alter a table using an AlterCommand
+     * 使用AlterCommand修改表
      *
-     * @param command AlterCommand containing modification details
-     * @throws DatabaseException if table does not exist or alter operation fails
+     * @param command 包含修改详情的AlterCommand
+     * @throws DatabaseException 如果表不存在或修改操作失败
      */
     public void alterTable(AlterCommand command) {
         String tableName = command.getTableName();
         Table table = getTable(tableName);
 
         if (table == null) {
-            throw new DatabaseException("Table '" + tableName + "' does not exist in database '" + name + "'",
+            throw new DatabaseException("表 '" + tableName + "' 不存在于数据库 '" + name + "' 中",
                     DatabaseException.TABLE_NOT_FOUND,
                     null,
                     Map.of("table", tableName, "database", name));
         }
 
-        // Execute the command directly on the table
+        // 直接在表上执行命令
         command.execute(this);
     }
 
     /**
-     * Execute a SQL update statement
+     * 执行SQL更新语句
      *
-     * @param sql SQL statement to execute
-     * @param params Parameters for the SQL statement
-     * @return Number of rows affected
-     * @throws DatabaseException if execution fails
+     * @param sql 要执行的SQL语句
+     * @param params SQL语句的参数
+     * @return 受影响的行数
+     * @throws DatabaseException 如果执行失败
      */
     public int executeUpdate(String sql, Object... params) {
-        // For the in-memory implementation, this is a stub
-        // In a real database, this would execute the SQL
+        // 对于内存实现，这是一个存根
+        // 在真实数据库中，这将执行SQL语句
         return 0;
     }
 }
